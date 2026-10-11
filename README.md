@@ -33,7 +33,7 @@ server/         FastAPI：JWT 认证、SSE 流式对话、Redis 会话、MySQL �
   reports.py    评测报告归一化：三套报告统一口径，供看板展示
 frontend/       Vue 3 + Element Plus 界面（含引用来源展示）
 evals/          离线评测：数据集、评分器、运行器、报告对比
-docs/           知识库示例文档
+docs/           知识库示例文档；docs/问题排查手册.md 收录 40 个开发问题的根因与解决
 tests/          单元测试（纯函数，无需 API Key）
 .github/        CI 与评测回归门禁
 main.py         命令行快速体验入口
