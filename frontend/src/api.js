@@ -24,7 +24,16 @@ export function setToken(token) {
 async function parseError(res, fallback) {
   try {
     const data = await res.json()
-    if (data && data.detail) return data.detail
+    if (data && data.detail) {
+      // 422 校验错误的 detail 是对象数组，直接展示会变成 [object Object]
+      if (typeof data.detail === 'string') return data.detail
+      if (Array.isArray(data.detail)) {
+        return data.detail
+          .map((item) => item?.msg || JSON.stringify(item))
+          .join('；')
+      }
+      return JSON.stringify(data.detail)
+    }
   } catch {
     // 响应体不是 JSON，沿用默认提示
   }
@@ -105,7 +114,8 @@ export function fetchKnowledgeContent(docId) {
 export function changePassword(oldPassword, newPassword) {
   return request('/password', {
     method: 'POST',
-    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+    // request() 内部会统一做 JSON.stringify，这里直接传对象即可
+    body: { old_password: oldPassword, new_password: newPassword },
   })
 }
 
