@@ -24,8 +24,11 @@ services:
       - "3306"
     environment:
       MYSQL_DATABASE: agent
-      # 密码从 .env 读取，绝不写进仓库
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      # 密码从 .env 读取，绝不写进仓库。
+      # 注意用 :- 而非 :?：CI 环境没有 .env，:? 会让 compose config 校验失败；
+      # 真实启动时密码为空会被官方 mysql 镜像直接拒绝（必须显式
+      # MYSQL_ALLOW_EMPTY_PASSWORD 才允许），误配置仍会明确失败而不是裸奔。
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
       TZ: Asia/Shanghai
     # 与本地建库保持一致的字符集，避免中文与 emoji 写入报错
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
