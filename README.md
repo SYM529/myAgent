@@ -1,5 +1,8 @@
 # Agent 智能助手
 
+[![CI](https://github.com/SYM529/myAgent/actions/workflows/ci.yml/badge.svg)](https://github.com/SYM529/myAgent/actions/workflows/ci.yml)
+[![Eval Regression Gate](https://github.com/SYM529/myAgent/actions/workflows/eval.yml/badge.svg)](https://github.com/SYM529/myAgent/actions/workflows/eval.yml)
+
 基于 **LangChain v1 + FastAPI + Vue 3** 的对话式 Agent 应用，带有完整的离线评测体系与链路追踪。
 
 后端驱动 ReAct Agent 自主调用工具（数学计算、当前时间、联网搜索），通过 SSE 流式返回；
