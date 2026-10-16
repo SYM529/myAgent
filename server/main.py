@@ -19,8 +19,17 @@ from sqlalchemy.orm import Session
 from agent.pricing import estimate_cost, sum_usage
 from agent import resilience
 from agent.rag import delete_document as rag_delete_document
+from agent.rag.store import DELETE_STATUS_ALREADY_ABSENT
+from agent.rag import document_access as rag_document_access
 from agent.rag import get_document_chunks as rag_get_document_chunks
 from agent.rag import list_documents as rag_list_documents
+from agent.rag import list_documents_for as rag_list_documents_for
+from agent.rag.context import (
+    RagRequestContext,
+    reset_context as reset_rag_context,
+    set_context as set_rag_context,
+)
+from agent.rag.visibility import can_delete, can_read
 from agent.service import MODEL_NAME, agent, capability_signature
 from server import audit
 from server import cache as cache_mod
@@ -34,11 +43,6 @@ from server import prom
 from server.ratelimit import build_guard, build_limiter
 from server.uploads import current_user_id, resolve_uploaded
 
-try:
-    # 知识库可用时才能透传引用来源，导入失败不影响其余功能
-    from agent.rag.tool import take_citations
-except Exception:  # pragma: no cover
-    take_citations = None
 from server.auth import (
     hash_password, verify_password, create_access_token, get_current_user
 )
@@ -466,6 +470,10 @@ def list_knowledge(
     支持按来源文件名模糊搜索 + 分页：文档是长期累积的，
     几十份之后一屏罗列的体验会迅速劣化。
 
+    可见性在**服务端**过滤（``rag_list_documents_for``）：只返回 public 文档与
+    本人上传的 private 文档；他人 private 与 unknown 文档对任何人（含管理员）
+    都不出现。过滤先于搜索与分页，不能靠前端标记隐藏。
+
     额外返回 `mine` 字段：前端据此决定能否显示删除按钮，
     避免"点了删除才被告知无权"的体验。
     """
@@ -474,8 +482,9 @@ def list_knowledge(
     page_size = min(max(1, page_size), 50)
     q = (q or "").strip().lower()
 
+    is_admin = bool(getattr(current_user, "is_admin", False))
     try:
-        documents = rag_list_documents()
+        documents = rag_list_documents_for(current_user.id, is_admin=is_admin)
     except Exception as e:
         logger.warning("读取知识库列表失败：%s", e)
         raise HTTPException(status_code=503, detail=f"知识库暂不可用：{e}")
@@ -505,14 +514,24 @@ def list_knowledge(
 def knowledge_content(doc_id: str, current_user: User = Depends(get_current_user)):
     """查看某个文档的 chunk 原文（按入库顺序）。
 
-    查看是纯读操作，任何登录用户都可以——权限收紧只针对删除，
-    "能看"不影响"谁能删"的安全模型。
+    只有 public 文档与本人上传的 private 文档能看。他人 private、unknown 以及
+    元数据非法/矛盾的文档，对任何人（含管理员）都返回 404——与"文档不存在"
+    同响应，不泄露它是否存在。
     """
     if not DOC_ID_PATTERN.match(doc_id):
         raise HTTPException(status_code=400, detail="doc_id 格式非法")
 
+    is_admin = bool(getattr(current_user, "is_admin", False))
     try:
+        access = rag_document_access(doc_id)
+        if access is None or not can_read(
+            access, user_id=current_user.id, is_admin=is_admin
+        ):
+            # 与"文档不存在"同一响应：越权者无法据此判断文档是否存在
+            raise HTTPException(status_code=404, detail="文档不存在或已被删除")
         chunks = rag_get_document_chunks(doc_id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"知识库暂不可用：{e}")
 
@@ -529,13 +548,20 @@ def delete_knowledge(
 ):
     """删除一个文档的全部 chunk。
 
-    知识库是所有人共用的，删除必须受限，规则按"谁更可能为后果负责"划分：
-    - 自己上传的（metadata 里有 owner）：可删
-    - CLI 入库的共享文档（无 owner）：**仅管理员可删**
-    - 他人上传的文档：一律拒绝
+    删除规则与读取共用 ``agent.rag.visibility``：
+    - public：按现有业务约定仅管理员可删；
+    - private：仅 owner 本人可删（管理员删他人的同样拒绝）；
+    - unknown / 元数据非法或矛盾：任何人（含管理员）都不能删。
 
-    早期共享文档完全不可删，代价是接口无法管理示例文档——只能命令行
-    `--rebuild` 全量重建。把这条对管理员开放后，普通用户的约束完全不变。
+    无权删除时返回 404，与"文档不存在"同响应——不泄露文档是否存在，
+    也不让人靠状态码探测他人文档。
+
+    结果语义（阶段 8B 起）：
+    - 正常删除 → 200；
+    - 检查时可见、执行时已被并发删除 → 200 + ``already_deleted: true``（幂等）；
+    - 向量库已删但元数据写入失败 → **500**，明确说明未完成并给出原因，
+      绝不谎报成功；
+    - 源文件清理失败 → 200，但在 ``warnings`` 里如实列出，不隐瞒残留。
     """
     if not DOC_ID_PATTERN.match(doc_id):
         raise HTTPException(status_code=400, detail="doc_id 格式非法")
@@ -550,48 +576,78 @@ def delete_knowledge(
         raise HTTPException(status_code=404, detail="文档不存在")
 
     is_admin = bool(getattr(current_user, "is_admin", False))
-    owner = target.get("owner")
-    if owner is None:
-        # 共享文档：只放行管理员
-        if not is_admin:
-            raise HTTPException(
-                status_code=403,
-                detail="共享文档仅管理员可删除，普通用户请使用命令行重建知识库",
-            )
-    elif str(owner) != str(current_user.id) and not is_admin:
-        raise HTTPException(status_code=403, detail="只能删除自己上传的文档")
+    access = rag_document_access(doc_id)
+    if access is None or not can_delete(
+        access, user_id=current_user.id, is_admin=is_admin
+    ):
+        raise HTTPException(status_code=404, detail="文档不存在")
 
-    if owner is None:
+    if access.is_public:
         logger.info(
-            "管理员 %s 删除共享文档 %s（%s）",
+            "管理员 %s 删除公共文档 %s（%s）",
             current_user.username, doc_id, target.get("source"),
         )
 
     try:
-        removed = rag_delete_document(doc_id)
+        result = rag_delete_document(doc_id)
     except Exception as e:
+        # 完整异常只进服务端日志：HTTP 响应不回显底层细节（路径、临时文件名、PID…）
         logger.warning("删除文档失败：%s", e)
-        raise HTTPException(status_code=500, detail=f"删除失败：{e}")
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "删除失败：知识库存储暂时不可用，请稍后重试；"
+                "若持续失败，请联系管理员并提供请求编号："
+                f"{current_request_id()}"
+            ),
+        )
+
+    if result.partial:
+        # 向量库已删、元数据未更新：必须显式失败，并提供运维可识别的线索
+        logger.error("删除未完成（元数据保存失败）：doc_id=%s 原因=%s", doc_id, result.error)
+        audit.record(
+            audit.DELETE_DOCUMENT, actor=current_user.username,
+            target=target.get("source") or doc_id,
+            outcome="failure",
+            detail=f"部分失败：{result.error or '原因未知'}"[:200],
+            request_id=current_request_id(),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "删除未完成：向量库已移除该文档，但元数据未保存成功。"
+                "请先联系管理员核对，不要重复上传同一文件；请求编号："
+                f"{current_request_id()}"
+            ),
+        )
 
     # 资料变了，缓存里基于旧资料生成的答案不再可信
     if semantic_cache is not None:
         semantic_cache.clear()
 
     # 顺带清理上传的源文件，避免磁盘只增不减
+    warnings: list[str] = []
     file_id = target.get("file_id")
     if file_id:
         try:
             uploads.resolve_user_file(current_user.id, file_id).unlink(missing_ok=True)
         except Exception as e:
             logger.warning("删除源文件失败：%s", e)
+            warnings.append(f"源文件未删除：{type(e).__name__}")
 
     audit.record(
         audit.DELETE_DOCUMENT, actor=current_user.username,
-        target=f"{target.get('source') or doc_id}（{removed} 段）",
-        detail="共享文档" if not owner else "本人文档",
+        target=f"{target.get('source') or doc_id}（{result.chunks_removed} 段）",
+        detail="公共文档" if access.is_public else "本人文档",
         request_id=current_request_id(),
     )
-    return {"status": "deleted", "doc_id": doc_id, "chunks": removed}
+    return {
+        "status": "deleted",
+        "doc_id": doc_id,
+        "chunks": result.chunks_removed,
+        "already_deleted": result.status == DELETE_STATUS_ALREADY_ABSENT,
+        "warnings": warnings,
+    }
 
 
 @app.get("/api/reports")
@@ -775,6 +831,7 @@ async def agent_stream(
     current_user: User = Depends(enforce_rate_limit)
 ):
     user_id = current_user.id
+    is_admin = bool(getattr(current_user, "is_admin", False))
 
     history = get_history(user_id, req.session_id)
     # 历史指纹要在追加本轮消息**之前**算：它代表"发这句之前聊过什么"
@@ -810,7 +867,16 @@ async def agent_stream(
                 "content": "上游模型暂时不可用（已熔断），请稍后再试。",
             })
             yield "data: [DONE]\n\n"
-            return
+            return          # 熔断早退不设置 RAG 上下文：本次不会走到检索
+
+        # 本请求的 RAG 上下文：身份 + 引用容器。
+        # rag_ctx 是本请求的局部对象——工具在工作线程里原地写它持有的 citations，
+        # SSE 读同一个对象；不使用任何模块级共享状态，避免并发下串号。
+        # 放在熔断检查之后、try 之前：由下面的 finally 统一清理。
+        rag_ctx = RagRequestContext(
+            user_id=user_id, is_admin=is_admin, citations=[]
+        )
+        set_rag_context(rag_ctx)
 
         prom.inc_inflight()
         timer = prom.Timer()
@@ -906,9 +972,10 @@ async def agent_stream(
                         "ts": _now_iso(),
                     }
                     # 知识库引用随事件下发，前端据此展示"答案出自哪里"。
-                    # react 架构从工具层取，graph 架构直接从 state 取。
-                    if tool_name == "search_knowledge_base" and take_citations is not None:
-                        data["citations"] = take_citations()
+                    # react 架构读本请求的上下文（工具已在工作线程里原地写入），
+                    # graph 架构直接从 state 取。
+                    if tool_name == "search_knowledge_base":
+                        data["citations"] = list(rag_ctx.citations)
                     if not data.get("citations") and event.get("citations"):
                         data["citations"] = event["citations"]
                     yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
@@ -992,6 +1059,12 @@ async def agent_stream(
             err = {"type": "error", "content": f"服务异常: {str(e)}"}
             yield f"data: {json.dumps(err, ensure_ascii=False)}\n\n"
         finally:
+            # 上下文清理：包一层 try 是为了万无一失——它绝不能影响下面的
+            # 并发名额归还、inflight 计数与熔断状态维护
+            try:
+                reset_rag_context()
+            except Exception as e:      # pragma: no cover - 防御性分支
+                logger.warning("清理 RAG 请求上下文失败：%s", e)
             # 必须释放：生成器被取消（客户端断开）时也要归还名额，
             # 否则并发名额会被慢慢泄漏，服务逐渐拒掉所有请求。
             guard.release()

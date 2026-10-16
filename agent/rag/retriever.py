@@ -59,12 +59,35 @@ class Retriever:
         self.reranker = reranker or Reranker()
         self.top_k = top_k
 
-    def retrieve(self, query: str) -> RetrievalResult:
+    def retrieve(
+        self, query: str, *, scope: frozenset[str] | None = None
+    ) -> RetrievalResult:
+        """检索并组装引用与上下文。
+
+        ``scope=None`` 表示调用方没有提供身份（MCP、脚本、未接线路径），
+        此时按**仅 public** 的安全默认处理，绝不是"全库"。
+        """
         if self.store.count() == 0:
             return RetrievalResult([], "", False)
 
+        if scope is None:
+            # 惰性导入：agent.rag.__init__ 会 import 本模块，顶层导入会成环
+            from agent.rag import public_scope
+
+            scope = public_scope(store=self.store)
+
         # 第一步：混合召回一个较大的候选集
-        hits = self.store.search(query, top_k=self.top_k * CANDIDATE_MULTIPLIER)
+        hits = self.store.search(
+            query,
+            top_k=self.top_k * CANDIDATE_MULTIPLIER,
+            visible_doc_ids=scope,
+        )
+        if not hits:
+            return RetrievalResult([], "", False)
+
+        # 二次防御：即使存储层返回了范围外的命中（上游 bug / 脏数据），
+        # 也不允许它进入精排、上下文与引用
+        hits = [hit for hit in hits if hit.chunk.doc_id in scope]
         if not hits:
             return RetrievalResult([], "", False)
 

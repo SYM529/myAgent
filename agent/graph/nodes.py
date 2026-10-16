@@ -141,9 +141,12 @@ def knowledge_expert(state: dict) -> dict:
     """知识库专家：检索本地文档，产出带编号的上下文与引用。"""
     question = state.get("question") or ""
     try:
-        from agent.rag import get_retriever
+        from agent.rag import get_retriever, scope_for_request
 
-        result = get_retriever().retrieve(question)
+        # 与 ReAct 工具走同一个 scope 入口（含同一个 store），权限规则只有一处实现
+        retriever = get_retriever()
+        scope = scope_for_request(store=retriever.store)
+        result = retriever.retrieve(question, scope=scope)
     except Exception as e:
         logger.warning("知识库检索失败：%s", e)
         return {"errors": [f"知识库检索失败：{type(e).__name__}"]}
