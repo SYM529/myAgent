@@ -230,8 +230,17 @@ def _read_any(path: Path, suffix: str) -> str:
         ) from None
 
 
-def load_document(path: Path, root: Path | None = None) -> Document:
-    """加载单个文件。root 用于计算相对路径作为展示用的 source。"""
+def load_document(
+    path: Path, root: Path | None = None, *, namespace: str | None = None
+) -> Document:
+    """加载单个文件。root 用于计算相对路径作为展示用的 source。
+
+    namespace 把 doc_id 限制在命名空间内（Web 上传传 ``u{user_id}``）：
+    不同用户上传同一份内容会得到不同的 doc_id，因而不会互相覆盖归属与源文件记录；
+    同一用户重复上传同一份内容仍是同一个 doc_id，保持 upsert 幂等。
+    不传 namespace 时哈希方式与历史完全一致——CLI 公共文档保持原 doc_id，
+    重新导入 ./docs 不会凭空多出一份副本。
+    """
     path = Path(path)
     suffix = path.suffix.lower()
     if suffix not in SUPPORTED_SUFFIXES:
@@ -242,7 +251,11 @@ def load_document(path: Path, root: Path | None = None) -> Document:
         raise ValueError(f"文件内容为空：{path}")
 
     # doc_id 用内容哈希：同一份文档重复入库不会产生重复 chunk
-    doc_id = hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
+    if namespace:
+        digest_source = f"{namespace}:{text}"
+    else:
+        digest_source = text
+    doc_id = hashlib.sha1(digest_source.encode("utf-8")).hexdigest()[:16]
     source = str(path.relative_to(root)) if root and path.is_relative_to(root) else str(path)
 
     return Document(doc_id=doc_id, source=source, text=text,

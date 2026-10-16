@@ -185,6 +185,14 @@ def ingest_document_into_kb(
 ) -> dict:
     """把单个文档增量写入知识库。
 
+    Web 上传的文档**一律是私人文档**：每个 chunk 都必须带一致的
+    ``owner`` 与 ``visibility='private'``，缺一不可。没有 owner 的文档在判定规则里
+    是"来源不明"，只有 CLI 显式声明的公共文档才允许无归属——所以这里 owner 缺失
+    直接拒绝，而不是静默写成共享文档。
+
+    doc_id 带用户命名空间（见 ``load_document`` 的 namespace 参数）：不同用户上传
+    同一份内容各得一份记录，不会互相覆盖归属与源文件；同一用户重复上传仍幂等。
+
     返回写入结果。这里刻意**不**调用 rebuild：
     新增自己的文档，不应该把别人（或示例文档）的知识清掉。
 
@@ -194,8 +202,15 @@ def ingest_document_into_kb(
     from agent.rag import get_store
     from agent.rag.chunker import chunk_documents
     from agent.rag.loader import load_document
+    from agent.rag.visibility import VISIBILITY_PRIVATE
 
-    document = load_document(path, root=path.parent)
+    if owner is None:
+        raise ValueError("Web 上传必须带 owner；公共文档请走 CLI 导入")
+    owner_text = str(owner)
+    if not owner_text.isdigit() or int(owner_text) <= 0:
+        raise ValueError(f"owner 非法：{owner_text!r}")
+
+    document = load_document(path, root=path.parent, namespace=f"u{owner_text}")
     # 磁盘名是出于安全随机生成的 UUID，但它会一路传递到"引用来源"展示给用户。
     # 必须改回用户上传时的原始文件名，否则引用里全是 UUID，用户根本无从核验。
     document.source = display_name or path.name
@@ -208,8 +223,8 @@ def ingest_document_into_kb(
     ingested_at = datetime.now().isoformat(timespec="seconds")
     for chunk in chunks:
         chunk.metadata["ingested_at"] = ingested_at
-        if owner is not None:
-            chunk.metadata["owner"] = str(owner)
+        chunk.metadata["owner"] = owner_text
+        chunk.metadata["visibility"] = VISIBILITY_PRIVATE
         if file_id:
             chunk.metadata["file_id"] = file_id
     written = get_store().add(chunks)

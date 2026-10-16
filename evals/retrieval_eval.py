@@ -38,7 +38,11 @@ load_dotenv()
 from langchain_core.messages import HumanMessage, SystemMessage  # noqa: E402
 from langchain_openai import ChatOpenAI  # noqa: E402
 
-from agent.rag import get_retriever, get_store  # noqa: E402
+from agent.rag import (  # noqa: E402
+    all_documents_scope,
+    get_retriever,
+    get_store,
+)
 from agent.rag.reranker import Reranker  # noqa: E402
 from agent.service import MODEL_NAME  # noqa: E402
 
@@ -139,6 +143,8 @@ def first_relevant_rank(chunks, keywords: list[str]) -> int | None:
 
 def measure_retrieval(cases: list[Case]) -> tuple[list[CaseResult], dict]:
     store = get_store()
+    # 离线评测显式声明"我要全量文档"：不依赖任何隐式默认
+    scope = all_documents_scope(store=store)
     reranker = Reranker()
     results: list[CaseResult] = []
 
@@ -146,7 +152,9 @@ def measure_retrieval(cases: list[Case]) -> tuple[list[CaseResult], dict]:
 
     for index, case in enumerate(cases, 1):
         started = time.perf_counter()
-        hits = store.search(case.query, top_k=CANDIDATE_POOL)
+        hits = store.search(
+            case.query, top_k=CANDIDATE_POOL, visible_doc_ids=scope
+        )
         fused = [h.chunk for h in hits]
         ranked_pairs = reranker.rerank(case.query, fused, top_n=CANDIDATE_POOL) \
             if reranker.enabled else [(c, 0.0) for c in fused]
@@ -227,13 +235,14 @@ def _llm():
 def measure_faithfulness(cases: list[Case]) -> tuple[list[dict], dict]:
     """忠实度：模型基于检索资料作答，检查是否编造了资料外的信息。"""
     retriever = get_retriever()
+    scope = all_documents_scope(store=retriever.store)
     llm = _llm()
     rows: list[dict] = []
 
     print(f"\n开始忠实度评测：{len(cases)} 条\n")
 
     for index, case in enumerate(cases, 1):
-        retrieval = retriever.retrieve(case.query)
+        retrieval = retriever.retrieve(case.query, scope=scope)
         row = {
             "id": case.id,
             "query": case.query,
