@@ -11,7 +11,7 @@
 
 开发周期：2026-09 至 2026-10 持续开发，2026-10 统一推送至 GitHub。
 
-**在线演示**：<http://124.220.135.176> —— 部署于腾讯云轻量服务器，公网可访问（注册已关闭，如需试用账号可通过简历联系方式获取）。
+**在线演示**：<http://124.220.135.176> —— 部署于腾讯云轻量服务器，公网可访问（注册已关闭；演示账号 `demo_guest`，密码可通过简历联系方式获取）。
 
 ## 30 秒速览
 
@@ -19,6 +19,7 @@
 - **评测体系**：158 条端到端评测覆盖 10 类场景 + 36 条检索评测 + CI 回归门禁，综合通过率 98.4%、工具调用准确率 100%。
 - **RAG 检索**：BM25 + bge-m3 向量双路召回，RRF 融合 + Cross-encoder 精排，精排后 Recall@1 97.2%。
 - **语义缓存**：四道防误命中闸门，阈值由评测集标定，零误命中，命中后延迟降约 81%。
+- **多用户权限隔离**：知识库按 public / private / unknown 三态判定（fail-closed），检索范围在召回前下推过滤，引用按请求隔离；管理员也不能读取他人私有文档。
 
 **已知局限（摘要）**：限流仅单用户维度；并发上限为进程内计数；语义缓存进程内、重启即失效；长上下文摘要会丢细节；llm_judge 评分带非确定性。详见文末「已知局限」。
 
@@ -222,12 +223,22 @@ START → classify ─┬─→ knowledge (RAG)  ─┐
 ### 使用
 
 ```bash
-python -m agent.rag.ingest ./docs --rebuild   # 重建知识库
+python -m agent.rag.ingest ./docs --rebuild --visibility public   # 重建知识库（公共文档）
 python -m agent.rag.ingest --stats            # 查看状态
 ```
 
 支持 `.md` / `.txt` / `.pdf`。PDF 按页提取并保留页码标记。
 知识库为空时 Agent 不会挂载检索工具，避免每轮都做无意义的工具调用。
+
+> CLI 导入必须**显式声明可见性**（目前仅支持 `--visibility public`）；不传会直接报错，
+> 从源头避免"来源不明的文档"混进知识库。
+
+### 多用户权限与删除一致性
+
+- **三态可见性**：`public` 必须显式声明 `visibility="public"` 且无 owner（CLI 导入的团队资料）；`private` 由 Web 上传产生，必须带 owner，仅本人可见/可删；缺少归属的历史文档属于 `unknown`，**所有人（含管理员）不可见、不可删除**，元数据非法或块间矛盾同样隔离。
+- **检索隔离**：可见范围在**召回前**下推——向量查询带 `where={"doc_id": {"$in": ...}}`、BM25 先按范围过滤再截断 top-k、进入重排前二次过滤；没有可信身份的路径（MCP / 离线脚本）默认只检索 public。
+- **引用隔离**：引用存放在请求级上下文（`ContextVar`），并发请求之间不共享、不串号；SSE 只读取本请求的引用快照。
+- **删除一致性**：`chunks.json` 原子写（同目录临时文件 + fsync + `os.replace`）；`DeleteResult` 明确区分 `deleted` / `already_absent` / `partial`；`HybridStore` 写路径用 RLock 串行化"读-改-写-切换"，并发删除或删除+上传不会互相覆盖；失败不谎报成功，内部错误只进服务端日志与审计。
 
 ### 关键设计
 
@@ -338,8 +349,8 @@ python -m evals.retrieval_eval --faithfulness  # 追加忠实度
 适合一次灌入多份，或作为团队共享资料：
 
 ```bash
-docker exec agent-backend python -m agent.rag.ingest ./docs        # 增量
-docker exec agent-backend python -m agent.rag.ingest ./docs --rebuild  # 清空后重建
+docker exec agent-backend python -m agent.rag.ingest ./docs --visibility public        # 增量
+docker exec agent-backend python -m agent.rag.ingest ./docs --rebuild --visibility public  # 清空后重建
 ```
 
 这类文档没有 owner，在面板里显示为**"共享文档"**，界面**不提供删除按钮**——
@@ -868,8 +879,10 @@ python -m evals.compare evals/reports/ci_baseline.json \
 - 图片理解目前只挂在 **react** 架构上，graph 架构尚未接入视觉分支。
 - 已上传文件现在可通过删除文档一并清理，但**没有过期清理**，
   长期不删的文件会一直占用磁盘。
-- 知识库是**全局共享**的：删除接口只允许删自己上传的文档，
-  CLI 入库的共享文档不可通过接口删除（防止一个人误删影响所有人）。
+- 知识库为**多用户隔离**：Web 上传为本人私有（仅本人可删），CLI 导入为 public（管理员可删）；
+  缺少归属的历史 unknown 文档在显式认领前对所有人不可见、不可删除。
+- 部署约定为**单 worker / 单副本**：写路径的 RLock 只保证进程内互斥；
+  多 worker 或多副本需要跨进程锁（文件锁或集中式锁），否则并发删除/上传存在互相覆盖的风险。
 - 语义缓存是**进程内**的，与并发闸门同一取舍：多副本部署时每份实例各有一份缓存，
   且重启即失效。要跨实例共享需要带向量能力的集中存储（如 RediSearch 或专门的向量库）。
 - 语义缓存的收益**高度依赖流量重复度**：本项目 demo 场景重复提问很少，
