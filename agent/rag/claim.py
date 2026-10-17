@@ -55,6 +55,20 @@ class ClaimError(RuntimeError):
     """认领被拒绝（保证零写入）时抛出。"""
 
 
+class _NoEmbedding:
+    """认领只改 metadata，不读也不写向量；这里显式拒绝任何 embedding 调用。
+
+    这样 CLI 在**没有 embedding 凭据**的环境（如 CI、纯运维机）也能运行——
+    这正是它和上传/检索工具的本质区别。
+    """
+
+    def embed(self, texts):
+        raise RuntimeError("claim 流程不应调用 embedding")
+
+    def embed_one(self, text):
+        raise RuntimeError("claim 流程不应调用 embedding")
+
+
 def _group_by_doc(chunks: Iterable) -> dict[str, list]:
     grouped: dict[str, list] = {}
     for chunk in chunks:
@@ -333,7 +347,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 2
 
-    store = HybridStore(persist_dir=args.persist_dir)
+    store = HybridStore(persist_dir=args.persist_dir, embedding_client=_NoEmbedding())
     try:
         report = claim_documents(
             store,

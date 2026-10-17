@@ -419,3 +419,25 @@ class TestCli:
         assert code == 2
         assert "--yes" in captured.out
         assert (tmp_path / "chunks.json").read_bytes() == before_bytes
+
+    def test_cli_dry_run_does_not_require_embedding_credentials(
+        self, tmp_path, chroma, capsys, monkeypatch
+    ):
+        """认领只改 metadata，不应依赖任何 embedding 凭据（CI 无 .env 也能跑）。"""
+        seed_legacy(tmp_path, chroma)
+
+        import agent.rag.store as store_module
+
+        class ExplodingEmbedding:
+            def __init__(self, *args, **kwargs):
+                raise AssertionError("claim 流程不应构造真实 EmbeddingClient")
+
+        monkeypatch.setattr(store_module, "EmbeddingClient", ExplodingEmbedding)
+
+        code = claim_main(
+            ["--persist-dir", str(tmp_path), "--doc-id", DOC_A, "--dry-run"]
+        )
+
+        captured = capsys.readouterr()
+        assert code == 0
+        assert '"dry_run": true' in captured.out
