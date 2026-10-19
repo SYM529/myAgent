@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from server.database import get_db, User
@@ -40,6 +41,15 @@ def create_access_token(user_id: int, password_version: int = 0) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def _load_user(db: Session, user_id: int) -> User | None:
+    """从库里取用户。独立成同步函数，供异步依赖丢进线程池执行。
+
+    get_current_user 必须是 async（ContextVar 要在请求任务里写入），
+    但同步 ORM 查询不能直接在里面做——那会把事件循环卡住。
+    """
+    return db.query(User).filter(User.id == user_id).first()
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
@@ -61,7 +71,8 @@ async def get_current_user(
     except (JWTError, TypeError, ValueError):
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    # 查询丢进线程池：async 依赖里直接做同步 DB I/O 会阻塞整个事件循环
+    user = await run_in_threadpool(_load_user, db, user_id)
     if not user:
         raise credentials_exception
 

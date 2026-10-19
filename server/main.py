@@ -7,6 +7,13 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from dotenv import load_dotenv
+
+# 必须先于所有读取环境变量的模块执行：
+# server.auth 在导入期校验 JWT_SECRET，server.database 在导入期读取 DATABASE_URL。
+# 顺序错了会在启动阶段直接崩，而不是等到某个请求才暴露。
+load_dotenv()
+
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
@@ -40,17 +47,15 @@ from server.logging_setup import (
     RequestContextMiddleware, current_request_id, request_user_var, setup_logging,
 )
 from server import prom
-from server.ratelimit import build_guard, build_limiter
+from server.ratelimit import (
+    SlidingWindowLimiter, build_guard, build_limiter,
+)
 from server.uploads import current_user_id, resolve_uploaded
 
 from server.auth import (
     hash_password, verify_password, create_access_token, get_current_user
 )
 import redis
-from dotenv import load_dotenv
-
-# 必须在导入任何读取环境变量的模块（agent.service / server.auth）之前加载
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +106,31 @@ SESSION_TTL = int(SESSION_TTL_HOURS * 3600)
 # 限流与并发控制。计数集中在 Redis，Redis 不可用时自动降级为进程内计数。
 limiter = build_limiter(r)
 guard = build_guard()
+
+# 认证与上传的独立额度：与 Agent 请求分开计数，互不挤占。
+# 登录按用户名计数：公网部署在 nginx 后面，request.client.host 是代理地址，
+# 按 IP 会把所有用户算进同一个桶。上传按登录用户计数，防止反复触发
+# Embedding 计费（一次上传背后是解析 + 向量化 + 入库）。
+AUTH_RATE_LIMIT_PER_MIN = int(os.getenv("AUTH_RATE_LIMIT_PER_MIN", "10"))
+UPLOAD_RATE_LIMIT_PER_MIN = int(os.getenv("UPLOAD_RATE_LIMIT_PER_MIN", "10"))
+auth_limiter = SlidingWindowLimiter(r, limit=AUTH_RATE_LIMIT_PER_MIN)
+upload_limiter = SlidingWindowLimiter(r, limit=UPLOAD_RATE_LIMIT_PER_MIN)
+
+
+def _enforce_quota(counter, identity: str, message: str) -> None:
+    """通用额度检查：超限统一返回 429 + Retry-After。"""
+    result = counter.check(identity)
+    if result.allowed:
+        return
+    retry = max(1, int(result.retry_after))
+    prom.record_rate_limited()
+    raise HTTPException(
+        status_code=429,
+        detail=f"{message}，请 {retry} 秒后重试",
+        headers={"Retry-After": str(retry)},
+    )
+
+
 
 # 上游（模型服务商）熔断器：连续失败达到阈值就快速失败，冷却后再探活
 provider_breaker = resilience.get_breaker(
@@ -347,6 +377,12 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+    # 按用户名限流（统一小写，避免换大小写绕过）。必须在校验密码之前：
+    # 否则暴力破解的每次尝试都已经打到 bcrypt 上，限流失去意义。
+    _enforce_quota(
+        auth_limiter, f"login:{form_data.username.strip().lower()}",
+        "登录尝试过于频繁",
+    )
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         # 登录失败也要审计：连续失败是最直接的暴力破解信号
@@ -663,10 +699,16 @@ def reports(current_user: User = Depends(require_admin)):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+def enforce_upload_rate_limit(current_user: User = Depends(get_current_user)) -> User:
+    """上传按用户限流：上传会触发解析与 Embedding 计费，需要单独设额度。"""
+    _enforce_quota(upload_limiter, f"upload:{current_user.id}", "上传过于频繁")
+    return current_user
+
+
 @app.post("/api/upload")
 async def upload(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(enforce_upload_rate_limit),
 ):
     """接收一个上传文件。
 
@@ -700,7 +742,10 @@ async def upload(
     if info["kind"] == uploads.KIND_DOCUMENT:
         try:
             # 用原始文件名做引用来源：磁盘名是随机 UUID，展示出来无法核验
-            result["knowledge"] = uploads.ingest_document_into_kb(
+            # 解析 + Embedding + 向量库写入全是同步阻塞操作（含网络调用）。
+            # 直接放在 async 端点里会卡住事件循环，其它用户的 SSE 也会停摆。
+            result["knowledge"] = await asyncio.to_thread(
+                uploads.ingest_document_into_kb,
                 Path(info["path"]),
                 display_name=info["filename"],
                 owner=current_user.id,      # 用于后续的删除鉴权
@@ -853,45 +898,48 @@ async def agent_stream(
         # 让 Agent 的工具能确认"当前请求属于谁"。
         # ContextVar 按 task 隔离，并发请求之间不会互相串扰。
         current_user_id.set(user_id)
-        # ---- 熔断检查 ----
-        # 上游持续故障时快速失败：否则每个请求都要硬等 90s 超时，
-        # 并发名额被占满，本来的"部分失败"会变成"整体不可用"。
-        if not provider_breaker.allow():
-            prom.record_error("circuit_open")
-            logger.error(
-                "上游熔断中，快速失败（session=%s）", req.session_id,
-                extra={"event": "circuit_open_reject"},
-            )
-            yield _sse({
-                "type": "error",
-                "content": "上游模型暂时不可用（已熔断），请稍后再试。",
-            })
-            yield "data: [DONE]\n\n"
-            return          # 熔断早退不设置 RAG 上下文：本次不会走到检索
 
-        # 本请求的 RAG 上下文：身份 + 引用容器。
-        # rag_ctx 是本请求的局部对象——工具在工作线程里原地写它持有的 citations，
-        # SSE 读同一个对象；不使用任何模块级共享状态，避免并发下串号。
-        # 放在熔断检查之后、try 之前：由下面的 finally 统一清理。
-        rag_ctx = RagRequestContext(
-            user_id=user_id, is_admin=is_admin, citations=[]
-        )
-        set_rag_context(rag_ctx)
-
+        # 所有清理都放在下面的 finally 里：正常结束、熔断早退、生成器被取消，
+        # 并发名额都必须归还——漏一次就少一个名额，最终所有请求都会 503。
         prom.inc_inflight()
         timer = prom.Timer()
-        logger.info(
-            "开始处理对话（session=%s，历史 %d 条，带图=%s）",
-            req.session_id, len(history), has_image,
-            extra={"event": "agent_start", "session_id": req.session_id},
-        )
-
-        collected = []      # 本轮产生的全部消息，用于写回会话历史
-        last_ai = None      # 最后一条 AI 消息，用于提取最终答案
-        errored = False     # 本轮是否出错（决定要不要把熔断器恢复为闭合）
+        collected = []          # 本轮产生的全部消息，用于写回会话历史
+        last_ai = None          # 最后一条 AI 消息，用于提取最终答案
+        errored = False         # 本轮是否出错（决定要不要把熔断器恢复为闭合）
+        provider_called = False # 只有真正请求过上游，"成功"才配记账
         signature = capability_signature()
 
         try:
+            # ---- 熔断检查 ----
+            # 上游持续故障时快速失败：否则每个请求都要硬等 90s 超时，
+            # 并发名额被占满，本来的"部分失败"会变成"整体不可用"。
+            if not provider_breaker.allow():
+                prom.record_error("circuit_open")
+                logger.error(
+                    "上游熔断中，快速失败（session=%s）", req.session_id,
+                    extra={"event": "circuit_open_reject"},
+                )
+                yield _sse({
+                    "type": "error",
+                    "content": "上游模型暂时不可用（已熔断），请稍后再试。",
+                })
+                yield "data: [DONE]\n\n"
+                return  # 本次不会走到检索，也不设置 RAG 上下文
+
+            # 本请求的 RAG 上下文：身份 + 引用容器。
+            # rag_ctx 是本请求的局部对象——工具在工作线程里原地写它持有的 citations，
+            # SSE 读同一个对象；不使用任何模块级共享状态，避免并发下串号。
+            rag_ctx = RagRequestContext(
+                user_id=user_id, is_admin=is_admin, citations=[]
+            )
+            set_rag_context(rag_ctx)
+
+            logger.info(
+                "开始处理对话（session=%s，历史 %d 条，带图=%s）",
+                req.session_id, len(history), has_image,
+                extra={"event": "agent_start", "session_id": req.session_id},
+            )
+
             # ---- 第一站：语义缓存 ----
             # 命中就直接下发答案，模型、检索、工具这一整条链路都不再执行。
             # 带图片时不查缓存：同一个问题配不同的图，答案本就该不同。
@@ -940,6 +988,7 @@ async def agent_stream(
             if req.file_id:
                 budget += 60  # 追加一个视觉调用的时间预算（与 VISION_TIMEOUT 同量级）
             async with asyncio.timeout(budget):
+                provider_called = True   # 从这里开始才真正依赖上游
                 async for event in agent.astream(
                     {"messages": history},
                     stream_mode="values"
@@ -1056,7 +1105,12 @@ async def agent_stream(
                 user_id, req.session_id, e,
                 extra={"event": "agent_error"},
             )
-            err = {"type": "error", "content": f"服务异常: {str(e)}"}
+            # 完整异常只进服务端日志：把上游报错原文回给客户端会泄露
+            # 服务地址、内部标识等细节，用户只需要一个可追溯的请求编号。
+            err = {"type": "error", "content": (
+                "服务异常，请稍后重试；若持续失败，请提供请求编号："
+                f"{current_request_id()}"
+            )}
             yield f"data: {json.dumps(err, ensure_ascii=False)}\n\n"
         finally:
             # 上下文清理：包一层 try 是为了万无一失——它绝不能影响下面的
@@ -1069,9 +1123,10 @@ async def agent_stream(
             # 否则并发名额会被慢慢泄漏，服务逐渐拒掉所有请求。
             guard.release()
             prom.dec_inflight()
-            # 走到这里说明本轮没有抛异常（超时/异常分支已被上面捕获），
-            # 视为上游健康，用于把熔断器从半开恢复为闭合
-            if not errored:
+            # 只有本轮真的调用过上游并且没出错，才能记一次成功。
+            # 缓存命中与熔断早退都没碰上游：半开状态下若被它们误判为恢复，
+            # 熔断器会立刻闭合，真实故障马上再次打满。
+            if not errored and provider_called:
                 provider_breaker.record_success()
             # 流式接口的总耗时（含模型与工具时间），是延迟告警的主指标
             elapsed = time.perf_counter() - timer.start

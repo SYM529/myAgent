@@ -50,3 +50,6 @@ tunnel.ps1
 # 一次性脚本与评测调试输出
 _*.txt
 _set_desc.ps1
+
+# 个人杂项（简历排版等一次性脚本），与项目无关
+_personal/

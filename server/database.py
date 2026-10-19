@@ -117,7 +117,7 @@ def sync_admin_users() -> None:
     每次启动执行一次：名单里的人提权，从名单里移除的人不会自动降权
     （降权是敏感操作，显式改库比悄悄降级更可预期）。
     """
-    names = {n.strip() for n in os.getenv("ADMIN_USERS", "demo").split(",") if n.strip()}
+    names = {n.strip() for n in os.getenv("ADMIN_USERS", "").split(",") if n.strip()}
     if not names:
         return
     try:
