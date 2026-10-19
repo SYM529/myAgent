@@ -58,7 +58,7 @@ jobs:
           EOF
 
       - name: 构建知识库
-        run: python -m agent.rag.ingest ./docs --rebuild
+        run: python -m agent.rag.ingest ./docs --rebuild --visibility public
 
       - name: 运行评测
         run: |

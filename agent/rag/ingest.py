@@ -1,8 +1,8 @@
 """知识库入库命令行工具。
 
-    python -m agent.rag.ingest                  # 增量入库 ./docs
-    python -m agent.rag.ingest ./my-docs        # 指定目录
-    python -m agent.rag.ingest --rebuild        # 先清空再入库
+    python -m agent.rag.ingest --visibility public            # 增量入库 ./docs
+    python -m agent.rag.ingest ./my-docs --visibility public  # 指定目录
+    python -m agent.rag.ingest --rebuild --visibility public  # 先清空再入库
     python -m agent.rag.ingest --stats          # 只看状态
 """
 

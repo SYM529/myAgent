@@ -35,7 +35,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ## 如何重建知识库
 
 ```bash
-python -m agent.rag.ingest ./docs --rebuild
+python -m agent.rag.ingest ./docs --rebuild --visibility public
 python -m agent.rag.ingest --stats
 ```
 
