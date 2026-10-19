@@ -8,7 +8,7 @@
 {"id":"ret_008","query":"分块时 chunk_size 默认多少字符？","gold_keywords":["chunk_size","500"],"gold_source":"项目技术说明.md","notes":"RAG 参数"}
 {"id":"ret_009","query":"相邻分块的重叠长度是多少？","gold_keywords":["chunk_overlap","80"],"gold_source":"项目技术说明.md","notes":"RAG 参数"}
 {"id":"ret_010","query":"候选先召回多少倍再精排？","gold_keywords":["候选倍数","3"],"gold_source":"项目技术说明.md","notes":"RAG 参数"}
-{"id":"ret_011","query":"rerank 低于多少分会被丢弃？","gold_keywords":["最低相关分","0.05"],"gold_source":"项目技术说明.md","notes":"阈值参数"}
+{"id":"ret_011","query":"rerank 低于多少分会被丢弃？","gold_keywords":["最低相关分","0.002"],"gold_source":"项目技术说明.md","notes":"阈值参数"}
 {"id":"ret_012","query":"embedding 用的是哪个模型？","gold_keywords":["Embedding 模型","bge-m3"],"gold_source":"项目技术说明.md","notes":"模型名含连字符"}
 {"id":"ret_013","query":"精排 rerank 用的是哪个模型？","gold_keywords":["Rerank 模型","bge-reranker-v2-m3"],"gold_source":"项目技术说明.md","notes":"字面匹配很关键"}
 {"id":"ret_014","query":"混合检索的两路结果如何融合？","gold_keywords":["RRF"],"gold_source":"项目技术说明.md","notes":"专有名词"}
@@ -21,7 +21,7 @@
 {"id":"ret_021","query":"PDF 文档入库时保留什么标记？","gold_keywords":["页码"],"gold_source":"运维与部署FAQ.md","notes":"细节事实"}
 {"id":"ret_022","query":"range 序列长度上限是多少？","gold_keywords":["100000"],"gold_source":"项目技术说明.md","notes":"纯数字"}
 {"id":"ret_023","query":"评测的判定分成几个层次？","gold_keywords":["三层"],"gold_source":"项目技术说明.md","notes":"评测设计"}
-{"id":"ret_024","query":"用户的账号数据存放在哪个文件？","gold_keywords":["agent.db"],"gold_source":"项目技术说明.md","notes":"存储位置"}
+{"id":"ret_024","query":"用户的账号数据存放在哪里？","gold_keywords":["MySQL"],"gold_source":"项目技术说明.md","notes":"存储位置"}
 {"id":"ret_025","query":"知识库采用了什么检索方式？","gold_keywords":["混合检索"],"gold_source":"项目技术说明.md","notes":"检索策略"}
 {"id":"ret_026","query":"向量召回是用哪个库实现的？","gold_keywords":["Chroma"],"gold_source":"项目技术说明.md","notes":"组件名"}
 {"id":"ret_027","query":"前端是如何访问后端接口的？","gold_keywords":["代理","后端"],"gold_source":"项目技术说明.md","notes":"部署方式"}

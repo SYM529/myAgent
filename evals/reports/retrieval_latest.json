@@ -1,25 +1,21 @@
 {
-  "tag": "retrieval-final",
-  "generated_at": "2026-09-21T15:54:28",
+  "tag": "current",
+  "generated_at": "2026-10-19T10:58:34",
   "summary": {
     "total_cases": 36,
-    "fused_recall@1": 0.8611,
-    "precision@1": 0.8611,
-    "fused_recall@3": 0.9722,
-    "precision@3": 0.3611,
-    "fused_recall@5": 0.9722,
-    "precision@5": 0.2167,
+    "fused_recall@1": 0.7778,
+    "precision@1": 0.7778,
+    "fused_recall@3": 0.9444,
+    "precision@3": 0.3703,
+    "fused_recall@5": 1.0,
+    "precision@5": 0.2444,
     "reranked_recall@1": 0.9722,
     "reranked_recall@3": 1.0,
-    "mrr": 0.9206,
+    "mrr": 0.8704,
     "missed_cases": [],
-    "latency_mean_sec": 0.654
+    "latency_mean_sec": 0.705
   },
-  "faithfulness": {
-    "total_cases": 36,
-    "faithfulness": 1.0,
-    "failed_cases": []
-  },
+  "faithfulness": null,
   "results": [
     {
       "id": "ret_001",
@@ -37,7 +33,7 @@
         "precision@5": 0.2
       },
       "rr": 0.5,
-      "latency_sec": 1.562
+      "latency_sec": 1.772
     },
     {
       "id": "ret_002",
@@ -55,7 +51,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.583
+      "latency_sec": 0.707
     },
     {
       "id": "ret_003",
@@ -73,7 +69,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.583
+      "latency_sec": 0.677
     },
     {
       "id": "ret_004",
@@ -91,43 +87,43 @@
         "precision@5": 0.2
       },
       "rr": 0.5,
-      "latency_sec": 0.575
+      "latency_sec": 0.696
     },
     {
       "id": "ret_005",
       "query": "会话历史最多保留多少条？",
-      "found_rank_fused": 1,
-      "found_rank_reranked": 1,
+      "found_rank_fused": 4,
+      "found_rank_reranked": 2,
       "recall": {
-        "recall@1": 1,
-        "recall@3": 1,
+        "recall@1": 0,
+        "recall@3": 0,
         "recall@5": 1
       },
       "precision": {
-        "precision@1": 1.0,
-        "precision@3": 0.3333,
+        "precision@1": 0.0,
+        "precision@3": 0.0,
         "precision@5": 0.2
       },
-      "rr": 1.0,
-      "latency_sec": 0.627
+      "rr": 0.25,
+      "latency_sec": 0.659
     },
     {
       "id": "ret_006",
       "query": "JWT token 的有效期是多久？",
-      "found_rank_fused": 1,
+      "found_rank_fused": 2,
       "found_rank_reranked": 1,
       "recall": {
-        "recall@1": 1,
+        "recall@1": 0,
         "recall@3": 1,
         "recall@5": 1
       },
       "precision": {
-        "precision@1": 1.0,
+        "precision@1": 0.0,
         "precision@3": 0.3333,
         "precision@5": 0.2
       },
-      "rr": 1.0,
-      "latency_sec": 0.521
+      "rr": 0.5,
+      "latency_sec": 0.647
     },
     {
       "id": "ret_007",
@@ -145,7 +141,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.566
+      "latency_sec": 0.636
     },
     {
       "id": "ret_008",
@@ -163,7 +159,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.537
+      "latency_sec": 0.698
     },
     {
       "id": "ret_009",
@@ -181,83 +177,11 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.665
+      "latency_sec": 0.696
     },
     {
       "id": "ret_010",
       "query": "候选先召回多少倍再精排？",
-      "found_rank_fused": 1,
-      "found_rank_reranked": 1,
-      "recall": {
-        "recall@1": 1,
-        "recall@3": 1,
-        "recall@5": 1
-      },
-      "precision": {
-        "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
-      },
-      "rr": 1.0,
-      "latency_sec": 0.627
-    },
-    {
-      "id": "ret_011",
-      "query": "rerank 低于多少分会被丢弃？",
-      "found_rank_fused": 2,
-      "found_rank_reranked": 2,
-      "recall": {
-        "recall@1": 0,
-        "recall@3": 1,
-        "recall@5": 1
-      },
-      "precision": {
-        "precision@1": 0.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
-      },
-      "rr": 0.5,
-      "latency_sec": 0.588
-    },
-    {
-      "id": "ret_012",
-      "query": "embedding 用的是哪个模型？",
-      "found_rank_fused": 1,
-      "found_rank_reranked": 1,
-      "recall": {
-        "recall@1": 1,
-        "recall@3": 1,
-        "recall@5": 1
-      },
-      "precision": {
-        "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
-      },
-      "rr": 1.0,
-      "latency_sec": 0.582
-    },
-    {
-      "id": "ret_013",
-      "query": "精排 rerank 用的是哪个模型？",
-      "found_rank_fused": 1,
-      "found_rank_reranked": 1,
-      "recall": {
-        "recall@1": 1,
-        "recall@3": 1,
-        "recall@5": 1
-      },
-      "precision": {
-        "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
-      },
-      "rr": 1.0,
-      "latency_sec": 0.638
-    },
-    {
-      "id": "ret_014",
-      "query": "混合检索的两路结果如何融合？",
       "found_rank_fused": 1,
       "found_rank_reranked": 1,
       "recall": {
@@ -274,6 +198,78 @@
       "latency_sec": 0.655
     },
     {
+      "id": "ret_011",
+      "query": "rerank 低于多少分会被丢弃？",
+      "found_rank_fused": 1,
+      "found_rank_reranked": 1,
+      "recall": {
+        "recall@1": 1,
+        "recall@3": 1,
+        "recall@5": 1
+      },
+      "precision": {
+        "precision@1": 1.0,
+        "precision@3": 0.3333,
+        "precision@5": 0.2
+      },
+      "rr": 1.0,
+      "latency_sec": 0.823
+    },
+    {
+      "id": "ret_012",
+      "query": "embedding 用的是哪个模型？",
+      "found_rank_fused": 1,
+      "found_rank_reranked": 1,
+      "recall": {
+        "recall@1": 1,
+        "recall@3": 1,
+        "recall@5": 1
+      },
+      "precision": {
+        "precision@1": 1.0,
+        "precision@3": 0.3333,
+        "precision@5": 0.2
+      },
+      "rr": 1.0,
+      "latency_sec": 0.636
+    },
+    {
+      "id": "ret_013",
+      "query": "精排 rerank 用的是哪个模型？",
+      "found_rank_fused": 1,
+      "found_rank_reranked": 1,
+      "recall": {
+        "recall@1": 1,
+        "recall@3": 1,
+        "recall@5": 1
+      },
+      "precision": {
+        "precision@1": 1.0,
+        "precision@3": 0.3333,
+        "precision@5": 0.2
+      },
+      "rr": 1.0,
+      "latency_sec": 0.696
+    },
+    {
+      "id": "ret_014",
+      "query": "混合检索的两路结果如何融合？",
+      "found_rank_fused": 1,
+      "found_rank_reranked": 1,
+      "recall": {
+        "recall@1": 1,
+        "recall@3": 1,
+        "recall@5": 1
+      },
+      "precision": {
+        "precision@1": 1.0,
+        "precision@3": 0.3333,
+        "precision@5": 0.2
+      },
+      "rr": 1.0,
+      "latency_sec": 0.699
+    },
+    {
       "id": "ret_015",
       "query": "calculate 工具是基于什么实现的？",
       "found_rank_fused": 1,
@@ -289,7 +285,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.618
+      "latency_sec": 0.743
     },
     {
       "id": "ret_016",
@@ -307,7 +303,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.616
+      "latency_sec": 0.657
     },
     {
       "id": "ret_017",
@@ -325,7 +321,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.61
+      "latency_sec": 0.687
     },
     {
       "id": "ret_018",
@@ -339,11 +335,11 @@
       },
       "precision": {
         "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
+        "precision@3": 1.0,
+        "precision@5": 0.6
       },
       "rr": 1.0,
-      "latency_sec": 0.63
+      "latency_sec": 0.623
     },
     {
       "id": "ret_019",
@@ -357,11 +353,11 @@
       },
       "precision": {
         "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
+        "precision@3": 0.6667,
+        "precision@5": 0.4
       },
       "rr": 1.0,
-      "latency_sec": 0.593
+      "latency_sec": 0.609
     },
     {
       "id": "ret_020",
@@ -379,7 +375,7 @@
         "precision@5": 0.4
       },
       "rr": 1.0,
-      "latency_sec": 0.73
+      "latency_sec": 0.723
     },
     {
       "id": "ret_021",
@@ -397,25 +393,25 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.61
+      "latency_sec": 0.687
     },
     {
       "id": "ret_022",
       "query": "range 序列长度上限是多少？",
-      "found_rank_fused": 2,
+      "found_rank_fused": 1,
       "found_rank_reranked": 1,
       "recall": {
-        "recall@1": 0,
+        "recall@1": 1,
         "recall@3": 1,
         "recall@5": 1
       },
       "precision": {
-        "precision@1": 0.0,
+        "precision@1": 1.0,
         "precision@3": 0.3333,
         "precision@5": 0.2
       },
-      "rr": 0.5,
-      "latency_sec": 0.574
+      "rr": 1.0,
+      "latency_sec": 0.675
     },
     {
       "id": "ret_023",
@@ -433,43 +429,43 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.648
+      "latency_sec": 0.647
     },
     {
       "id": "ret_024",
-      "query": "用户的账号数据存放在哪个文件？",
-      "found_rank_fused": 1,
+      "query": "用户的账号数据存放在哪里？",
+      "found_rank_fused": 3,
       "found_rank_reranked": 1,
       "recall": {
-        "recall@1": 1,
+        "recall@1": 0,
         "recall@3": 1,
         "recall@5": 1
       },
       "precision": {
-        "precision@1": 1.0,
-        "precision@3": 0.6667,
+        "precision@1": 0.0,
+        "precision@3": 0.3333,
         "precision@5": 0.4
       },
-      "rr": 1.0,
-      "latency_sec": 0.616
+      "rr": 0.3333,
+      "latency_sec": 0.629
     },
     {
       "id": "ret_025",
       "query": "知识库采用了什么检索方式？",
-      "found_rank_fused": 1,
+      "found_rank_fused": 2,
       "found_rank_reranked": 1,
       "recall": {
-        "recall@1": 1,
+        "recall@1": 0,
         "recall@3": 1,
         "recall@5": 1
       },
       "precision": {
-        "precision@1": 1.0,
+        "precision@1": 0.0,
         "precision@3": 0.3333,
-        "precision@5": 0.2
+        "precision@5": 0.4
       },
-      "rr": 1.0,
-      "latency_sec": 0.604
+      "rr": 0.5,
+      "latency_sec": 0.645
     },
     {
       "id": "ret_026",
@@ -483,29 +479,29 @@
       },
       "precision": {
         "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
+        "precision@3": 0.6667,
+        "precision@5": 0.4
       },
       "rr": 1.0,
-      "latency_sec": 0.588
+      "latency_sec": 0.628
     },
     {
       "id": "ret_027",
       "query": "前端是如何访问后端接口的？",
-      "found_rank_fused": 1,
+      "found_rank_fused": 2,
       "found_rank_reranked": 1,
       "recall": {
-        "recall@1": 1,
+        "recall@1": 0,
         "recall@3": 1,
         "recall@5": 1
       },
       "precision": {
-        "precision@1": 1.0,
+        "precision@1": 0.0,
         "precision@3": 0.3333,
         "precision@5": 0.2
       },
-      "rr": 1.0,
-      "latency_sec": 0.592
+      "rr": 0.5,
+      "latency_sec": 0.613
     },
     {
       "id": "ret_028",
@@ -519,11 +515,11 @@
       },
       "precision": {
         "precision@1": 1.0,
-        "precision@3": 0.6667,
-        "precision@5": 0.4
+        "precision@3": 0.3333,
+        "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.616
+      "latency_sec": 0.744
     },
     {
       "id": "ret_029",
@@ -541,7 +537,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.905
+      "latency_sec": 0.692
     },
     {
       "id": "ret_030",
@@ -559,7 +555,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.703
+      "latency_sec": 0.626
     },
     {
       "id": "ret_031",
@@ -577,7 +573,7 @@
         "precision@5": 0.2
       },
       "rr": 1.0,
-      "latency_sec": 0.561
+      "latency_sec": 0.686
     },
     {
       "id": "ret_032",
@@ -591,15 +587,51 @@
       },
       "precision": {
         "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
+        "precision@3": 0.6667,
+        "precision@5": 0.4
       },
       "rr": 1.0,
-      "latency_sec": 0.637
+      "latency_sec": 0.702
     },
     {
       "id": "ret_033",
       "query": "项目支持哪两套 Agent 架构？",
+      "found_rank_fused": 1,
+      "found_rank_reranked": 1,
+      "recall": {
+        "recall@1": 1,
+        "recall@3": 1,
+        "recall@5": 1
+      },
+      "precision": {
+        "precision@1": 1.0,
+        "precision@3": 0.3333,
+        "precision@5": 0.2
+      },
+      "rr": 1.0,
+      "latency_sec": 0.738
+    },
+    {
+      "id": "ret_034",
+      "query": "多 Agent 图中分类之后是如何执行的？",
+      "found_rank_fused": 1,
+      "found_rank_reranked": 1,
+      "recall": {
+        "recall@1": 1,
+        "recall@3": 1,
+        "recall@5": 1
+      },
+      "precision": {
+        "precision@1": 1.0,
+        "precision@3": 0.3333,
+        "precision@5": 0.2
+      },
+      "rr": 1.0,
+      "latency_sec": 0.62
+    },
+    {
+      "id": "ret_035",
+      "query": "CORS 的来源限制是怎么配置的？",
       "found_rank_fused": 1,
       "found_rank_reranked": 1,
       "recall": {
@@ -616,348 +648,23 @@
       "latency_sec": 0.67
     },
     {
-      "id": "ret_034",
-      "query": "多 Agent 图中分类之后是如何执行的？",
-      "found_rank_fused": 1,
-      "found_rank_reranked": 1,
-      "recall": {
-        "recall@1": 1,
-        "recall@3": 1,
-        "recall@5": 1
-      },
-      "precision": {
-        "precision@1": 1.0,
-        "precision@3": 0.3333,
-        "precision@5": 0.2
-      },
-      "rr": 1.0,
-      "latency_sec": 0.596
-    },
-    {
-      "id": "ret_035",
-      "query": "CORS 的来源限制是怎么配置的？",
-      "found_rank_fused": 1,
-      "found_rank_reranked": 1,
-      "recall": {
-        "recall@1": 1,
-        "recall@3": 1,
-        "recall@5": 1
-      },
-      "precision": {
-        "precision@1": 1.0,
-        "precision@3": 0.6667,
-        "precision@5": 0.4
-      },
-      "rr": 1.0,
-      "latency_sec": 0.634
-    },
-    {
       "id": "ret_036",
       "query": "知识库能解析哪些类型的文件？",
-      "found_rank_fused": 7,
+      "found_rank_fused": 4,
       "found_rank_reranked": 1,
       "recall": {
         "recall@1": 0,
         "recall@3": 0,
-        "recall@5": 0
+        "recall@5": 1
       },
       "precision": {
         "precision@1": 0.0,
         "precision@3": 0.0,
-        "precision@5": 0.0
+        "precision@5": 0.2
       },
-      "rr": 0.1429,
-      "latency_sec": 0.87
+      "rr": 0.25,
+      "latency_sec": 0.632
     }
   ],
-  "faithfulness_details": [
-    {
-      "id": "ret_001",
-      "query": "会话历史在 Redis 里保存多久？",
-      "hit": true,
-      "answer": "会话历史在 Redis 里保存 1800 秒（即会话 TTL 为 1800 秒）。",
-      "pass": true,
-      "reason": "回答中的会话 TTL 1800 秒与资料[1]关键运行参数表完全一致。"
-    },
-    {
-      "id": "ret_002",
-      "query": "后端服务默认监听哪个端口？",
-      "hit": true,
-      "answer": "后端服务默认监听 8000 端口。",
-      "pass": true,
-      "reason": "资料[1]明确写明后端端口为8000，回答与资料一致。"
-    },
-    {
-      "id": "ret_003",
-      "query": "前端开发服务器的端口是多少？",
-      "hit": true,
-      "answer": "前端开发服务器的端口是 5173。",
-      "pass": true,
-      "reason": "资料[1]明确记载前端开发端口为5173，回答与资料一致。"
-    },
-    {
-      "id": "ret_004",
-      "query": "Agent 单次请求的超时时间是多少？",
-      "hit": true,
-      "answer": "Agent 单次请求的超时时间是 60 秒。",
-      "pass": true,
-      "reason": "回答中的60秒与资料[1]中'Agent 超时 60 秒'完全一致。"
-    },
-    {
-      "id": "ret_005",
-      "query": "会话历史最多保留多少条？",
-      "hit": true,
-      "answer": "会话历史最多保留 20 条。",
-      "pass": true,
-      "reason": "资料[1]明确写明历史条数上限为20，回答与资料一致。"
-    },
-    {
-      "id": "ret_006",
-      "query": "JWT token 的有效期是多久？",
-      "hit": true,
-      "answer": "JWT 有效期为 7 天，由 `ACCESS_TOKEN_EXPIRE_MINUTES` 控制。",
-      "pass": true,
-      "reason": "回答中的有效期7天和由ACCESS_TOKEN_EXPIRE_MINUTES控制均可在资料[1]中找到依据。"
-    },
-    {
-      "id": "ret_007",
-      "query": "知识库检索 top_k 默认是多少？",
-      "hit": true,
-      "answer": "知识库检索 top_k 默认是 4。",
-      "pass": true,
-      "reason": "资料[1]明确记载 top_k 默认值为 4，回答与资料一致。"
-    },
-    {
-      "id": "ret_008",
-      "query": "分块时 chunk_size 默认多少字符？",
-      "hit": true,
-      "answer": "分块时 chunk_size 默认 500 字符。",
-      "pass": true,
-      "reason": "回答中的 chunk_size 默认 500 字符与资料[1]中的配置表完全一致。"
-    },
-    {
-      "id": "ret_009",
-      "query": "相邻分块的重叠长度是多少？",
-      "hit": true,
-      "answer": "相邻分块的重叠长度是 80 字符。",
-      "pass": true,
-      "reason": "回答中的80字符与资料[1]中chunk_overlap默认值80字符完全一致。"
-    },
-    {
-      "id": "ret_010",
-      "query": "候选先召回多少倍再精排？",
-      "hit": true,
-      "answer": "候选先召回 top_k × 3 条再精排。",
-      "pass": true,
-      "reason": "回答与资料[1]中“候选倍数 3：先召回 top_k × 3 条再精排”完全一致。"
-    },
-    {
-      "id": "ret_011",
-      "query": "rerank 低于多少分会被丢弃？",
-      "hit": true,
-      "answer": "资料中没有相关信息。\n\n资料中提到的“最低相关分”是用于过滤候选的阈值（默认值在资料[1]中为 0.002，资料[2]中为 0.05），但并未说明该阈值是针对 rerank 分数，也没有说明 rerank 低于多少分会被丢弃。",
-      "pass": true,
-      "reason": "回答指出资料未说明 rerank 分数阈值，且对最低相关分的引用与资料一致，属忠实行为。"
-    },
-    {
-      "id": "ret_012",
-      "query": "embedding 用的是哪个模型？",
-      "hit": true,
-      "answer": "embedding 用的是 BAAI/bge-m3。",
-      "pass": true,
-      "reason": "回答中的 BAAI/bge-m3 与资料[1]中 Embedding 模型默认值完全一致。"
-    },
-    {
-      "id": "ret_013",
-      "query": "精排 rerank 用的是哪个模型？",
-      "hit": true,
-      "answer": "精排 rerank 用的是 **BAAI/bge-reranker-v2-m3**（cross-encoder 精排）。",
-      "pass": true,
-      "reason": "回答中的模型名称与 cross-encoder 精排说明均可在资料[1]的 RAG 配置表中找到依据。"
-    },
-    {
-      "id": "ret_014",
-      "query": "混合检索的两路结果如何融合？",
-      "hit": true,
-      "answer": "资料中没有相关信息。",
-      "pass": true,
-      "reason": "回答称资料中没有相关信息，属于忠实行为；资料中关于混合检索融合方式的内容被截断，未给出具体融合方法。"
-    },
-    {
-      "id": "ret_015",
-      "query": "calculate 工具是基于什么实现的？",
-      "hit": true,
-      "answer": "calculate 工具基于 AST 白名单求值实现，不使用 eval。",
-      "pass": true,
-      "reason": "回答内容与资料[1]中关于 calculate 工具的描述完全一致。"
-    },
-    {
-      "id": "ret_016",
-      "query": "评测数据集覆盖了哪些类别？",
-      "hit": true,
-      "answer": "评测数据集覆盖 10 个类别：单步计算、多步计算、时间查询、实时信息、无需工具、多轮对话、多工具协作、Prompt Injection、边界用例、知识库问答。",
-      "pass": true,
-      "reason": "回答完整列出了资料中评测数据集覆盖的10个类别，与原文一致。"
-    },
-    {
-      "id": "ret_017",
-      "query": "如何一键启动整个项目？",
-      "hit": true,
-      "answer": "根据资料，一键启动整个项目的步骤如下：\n\n```bash\ncp .env.example .env\ndocker compose up --build\n```\n\n然后打开 `http://localhost:8080`。\n\n另外，在 Windows 上挂载 SQLite 之前，需要先在宿主机创建一个空文件：\n\n```powershell\nNew-Item agent.db -ItemType File\n```",
-      "pass": true,
-      "reason": "回答中的启动命令、访问地址和 Windows 创建 SQLite 空文件的步骤均能在资料[1]中找到依据，无编造信息。"
-    },
-    {
-      "id": "ret_018",
-      "query": "JWT 密钥没有配置会怎样？",
-      "hit": true,
-      "answer": "JWT 密钥未配置时，服务拒绝启动。",
-      "pass": true,
-      "reason": "回答与资料[1][2]中'JWT_SECRET未配置时服务拒绝启动'的表述一致。"
-    },
-    {
-      "id": "ret_019",
-      "query": "Redis 挂掉之后服务会崩溃吗？",
-      "hit": true,
-      "answer": "不会崩溃。根据资料，Redis 挂了之后服务不会崩溃，会话相关的读写会捕获 `RedisError` 并记录日志，退化为“不读取、不保存历史”，对话仍然可用。",
-      "pass": true,
-      "reason": "回答中的事实陈述均可在资料[1]中找到依据，无编造或推测内容。"
-    },
-    {
-      "id": "ret_020",
-      "query": "怎么重建知识库？",
-      "hit": true,
-      "answer": "根据资料，重建知识库的命令是：\n\n```bash\npython -m agent.rag.ingest ./docs --rebuild\npython -m agent.rag.ingest --stats\n```\n\n支持 `.md`、`.txt`、`.pdf` 三种格式。PDF 会按页提取文本并保留页码标记。文档内容相同时 doc_id 不变，重复入库不会产生重复 chunk。",
-      "pass": true,
-      "reason": "回答中的命令、支持格式、PDF处理方式和doc_id说明均与资料[1]完全一致，无编造信息。"
-    },
-    {
-      "id": "ret_021",
-      "query": "PDF 文档入库时保留什么标记？",
-      "hit": true,
-      "answer": "PDF 文档入库时会按页提取文本并保留页码标记。",
-      "pass": true,
-      "reason": "回答与资料中'PDF 会按页提取文本并保留页码标记'完全一致。"
-    },
-    {
-      "id": "ret_022",
-      "query": "range 序列长度上限是多少？",
-      "hit": true,
-      "answer": "range 序列长度不超过 100000 项。",
-      "pass": true,
-      "reason": "回答与资料[1]中'range 序列长度不超过 100000 项'完全一致。"
-    },
-    {
-      "id": "ret_023",
-      "query": "评测的判定分成几个层次？",
-      "hit": true,
-      "answer": "根据资料，评测的判定分为**三层**：工具调用是否正确、最终答案是否正确、引用是否标注。三者全部通过才算该用例通过。",
-      "pass": true,
-      "reason": "回答中的三层判定及全部通过的要求均可在资料中直接找到依据。"
-    },
-    {
-      "id": "ret_024",
-      "query": "用户的账号数据存放在哪个文件？",
-      "hit": true,
-      "answer": "用户的账号数据存放在 SQLite 文件 `agent.db` 中。",
-      "pass": true,
-      "reason": "资料[1]明确说明用户表存放在 SQLite 文件 agent.db 中，回答与资料一致。"
-    },
-    {
-      "id": "ret_025",
-      "query": "知识库采用了什么检索方式？",
-      "hit": true,
-      "answer": "知识库采用了**混合检索**：Chroma 负责向量召回，BM25 负责字面召回，两路结果用 RR…（资料中此处内容被截断）。",
-      "pass": true,
-      "reason": "回答内容与资料[1]中关于混合检索的描述一致，且如实标注了资料被截断。"
-    },
-    {
-      "id": "ret_026",
-      "query": "向量召回是用哪个库实现的？",
-      "hit": true,
-      "answer": "向量召回是用 Chroma 实现的。",
-      "pass": true,
-      "reason": "资料[1]明确写明“Chroma 负责向量召回”，回答与资料一致。"
-    },
-    {
-      "id": "ret_027",
-      "query": "前端是如何访问后端接口的？",
-      "hit": true,
-      "answer": "前端通过 `/api` 代理访问后端。",
-      "pass": true,
-      "reason": "回答与资料[1]中“前端层通过 /api 代理访问后端”一致，无编造信息。"
-    },
-    {
-      "id": "ret_028",
-      "query": "没有配置 JWT_SECRET 会发生什么？",
-      "hit": true,
-      "answer": "没有配置 JWT_SECRET 时，服务会拒绝启动。",
-      "pass": true,
-      "reason": "回答与资料[1]中“未配置时服务拒绝启动”完全一致。"
-    },
-    {
-      "id": "ret_029",
-      "query": "Redis 不可用时历史记录会怎样？",
-      "hit": true,
-      "answer": "Redis 不可用时，会话相关的读写会捕获 `RedisError` 并记录日志，退化为“不读取、不保存历史”，对话仍然可用。",
-      "pass": true,
-      "reason": "回答内容与资料[1]中关于Redis不可用时历史记录处理方式的描述完全一致。"
-    },
-    {
-      "id": "ret_030",
-      "query": "评测结论应该关注哪个指标？",
-      "hit": true,
-      "answer": "评测结论应该关注**稳定通过率**，而非单轮数字。",
-      "pass": true,
-      "reason": "回答中的“稳定通过率”和“而非单轮数字”均直接来自资料原文。"
-    },
-    {
-      "id": "ret_031",
-      "query": "检索质量评测使用什么指标？",
-      "hit": true,
-      "answer": "资料中没有相关信息。",
-      "pass": true,
-      "reason": "回答称资料中没有相关信息，属于忠实行为；资料确实未提及检索质量评测所用指标。"
-    },
-    {
-      "id": "ret_032",
-      "query": "重建知识库要加什么参数？",
-      "hit": true,
-      "answer": "重建知识库要加 `--rebuild` 参数，命令为：\n\n```bash\npython -m agent.rag.ingest ./docs --rebuild\n```",
-      "pass": true,
-      "reason": "回答中的命令与参数均直接来自资料[1]，无编造信息。"
-    },
-    {
-      "id": "ret_033",
-      "query": "项目支持哪两套 Agent 架构？",
-      "hit": true,
-      "answer": "项目支持的两套 Agent 架构是：\n\n- `react`（默认）：单 ReAct 循环，4 个工具全量挂载\n- `graph`：LangGraph 显式图，先分类路由再并行执行专家节点",
-      "pass": true,
-      "reason": "回答内容与资料[1]中关于两套 Agent 架构的描述完全一致，无编造信息。"
-    },
-    {
-      "id": "ret_034",
-      "query": "多 Agent 图中分类之后是如何执行的？",
-      "hit": true,
-      "answer": "根据资料，graph 实现是“先分类路由再并行执行专家节点”。",
-      "pass": true,
-      "reason": "回答直接引用资料原文，准确描述了 graph 实现先分类路由再并行执行专家节点，无编造信息。"
-    },
-    {
-      "id": "ret_035",
-      "query": "CORS 的来源限制是怎么配置的？",
-      "hit": true,
-      "answer": "CORS 只放行白名单来源，不做 `*` 通配。",
-      "pass": true,
-      "reason": "回答与资料中安全约束关于CORS的表述完全一致，无额外信息。"
-    },
-    {
-      "id": "ret_036",
-      "query": "知识库能解析哪些类型的文件？",
-      "hit": true,
-      "answer": "知识库支持 `.md`、`.txt`、`.pdf` 三种格式。",
-      "pass": true,
-      "reason": "回答与资料[1]中'支持 .md、.txt、.pdf 三种格式'完全一致。"
-    }
-  ]
+  "faithfulness_details": null
 }
