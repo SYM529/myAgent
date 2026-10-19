@@ -36,6 +36,7 @@ from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 from langchain_openai import ChatOpenAI  # noqa: E402  # pylint: disable=unused-import
 
 from agent.llm import get_model  # noqa: E402
+from agent.rag.context import RagRequestContext, reset_context, set_context  # noqa: E402
 from agent.pricing import estimate_cost, sum_usage  # noqa: E402
 from agent.service import agent, MODEL_NAME  # noqa: E402
 from evals.dataset import DATASET_PATH, load_dataset  # noqa: E402,F401
@@ -132,17 +133,22 @@ async def run_case(case: dict, tag: str) -> dict:
         async with asyncio.timeout(CASE_TIMEOUT):
             for turn_index, question in enumerate(turns):
                 messages.append(HumanMessage(content=question))
-                result = await agent.ainvoke(
-                    {"messages": messages},
-                    config={
-                        "tags": ["eval", tag, case.get("category", "unknown")],
-                        "metadata": {
-                            "case_id": case["id"],
-                            "turn": turn_index + 1,
-                            "category": case.get("category"),
+                # 与线上一致：把用户原问题放进上下文，供短 query 兜底
+                set_context(RagRequestContext(user_message=question))
+                try:
+                    result = await agent.ainvoke(
+                        {"messages": messages},
+                        config={
+                            "tags": ["eval", tag, case.get("category", "unknown")],
+                            "metadata": {
+                                "case_id": case["id"],
+                                "turn": turn_index + 1,
+                                "category": case.get("category"),
+                            },
                         },
-                    },
-                )
+                    )
+                finally:
+                    reset_context()
                 messages = result["messages"]
 
                 for key, value in sum_usage(result["messages"]).items():

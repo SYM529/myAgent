@@ -32,6 +32,9 @@ class RagRequestContext:
     user_id: int | None = None
     is_admin: bool = False
     citations: list[dict] = field(default_factory=list)
+    # 用户本轮原始问题。模型的工具 query 可能被缩成几个关键词，
+    # 过短时工具会用它兜底，避免丢掉“前端/后端”这类限定词。
+    user_message: str = ""
 
 
 _current: ContextVar[RagRequestContext | None] = ContextVar(

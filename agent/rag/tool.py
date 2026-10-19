@@ -24,6 +24,22 @@ from agent.rag.context import get_context
 
 logger = logging.getLogger(__name__)
 
+# 模型常把问题缩成两三个关键词（如“UI 组件库”），丢掉“前端”这类限定词后
+# 检索会漏召回。请求上下文里有用户原问题时，短 query 用它兜底。
+SHORT_QUERY_MAX_CHARS = 8
+
+
+def _effective_query(query: str, context) -> str:
+    text = (query or "").strip()
+    if context is None:
+        return query
+    original = (getattr(context, "user_message", "") or "").strip()
+    if original and original != text and len(text) <= SHORT_QUERY_MAX_CHARS:
+        logger.info("检索 query 过短（%r），改用用户原问题：%r", text, original)
+        return original
+    return query
+
+
 ANSWER_INSTRUCTION = (
     "请基于以上资料回答，并在相关句子末尾用 [编号] 标注引用来源。"
     "只使用资料中明确包含的信息；若资料不足以回答，直接说明知识库中没有，"
@@ -63,7 +79,7 @@ def search_knowledge_base(query: str) -> str:
 
     不适用于：天气、新闻、股价等实时信息（应使用联网搜索）。
 
-    输入应为能表达检索意图的关键词或完整问题。
+    输入应为完整问题；尽量不要只传两三个关键词，以免丢失限定词。
     """
     context = get_context()
     try:
@@ -74,7 +90,7 @@ def search_knowledge_base(query: str) -> str:
         # 无身份/身份无效时由 scope_for_request 回退到 public。
         # 范围在**召回之前**传给 Retriever，越界片段不会进入精排与上下文。
         scope = scope_for_request(store=retriever.store)
-        result = retriever.retrieve(query, scope=scope)
+        result = retriever.retrieve(_effective_query(query, context), scope=scope)
     except Exception as e:
         # 工具失败不能让整个 Agent 崩掉，返回可读错误让模型自行降级。
         # 同时清空本请求的引用：失败事件不能携带同一请求里上一次成功调用的引用

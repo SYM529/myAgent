@@ -930,7 +930,8 @@ async def agent_stream(
             # rag_ctx 是本请求的局部对象——工具在工作线程里原地写它持有的 citations，
             # SSE 读同一个对象；不使用任何模块级共享状态，避免并发下串号。
             rag_ctx = RagRequestContext(
-                user_id=user_id, is_admin=is_admin, citations=[]
+                user_id=user_id, is_admin=is_admin, citations=[],
+                user_message=req.message,
             )
             set_rag_context(rag_ctx)
 
