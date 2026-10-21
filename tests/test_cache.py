@@ -86,7 +86,7 @@ class TestNumberSignature:
 
     def test_detects_swapped_parameters(self):
         # 标定数据里风险最高的一对：语义结构几乎相同，只有数字不同，
-        # 余弦相似度 0.925，但答案分别是 175 元与 500 元。
+        # 余弦相似度 0.9257，但答案分别是 175 元与 500 元。
         a = number_signature("本金 5000 元，年利率 3.5%，一年的利息是多少元")
         b = number_signature("10000 元按年利率 5% 存一年，利息是多少")
         assert a != b
