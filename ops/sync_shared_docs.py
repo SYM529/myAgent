@@ -4,8 +4,8 @@ doc_id 是内容哈希，文档修改后会生成新的 doc_id；直接增量 in
 新旧两版都留在库里，旧的仍可能被检索到。--rebuild 虽然干净，但会清空
 用户上传的私有文档。
 
-本脚本只删除“来源匹配当前 docs 目录、且为 public 且无 owner”的旧版本，
-然后增量写入新版本。默认 dry-run，确认后加 --apply。
+本脚本只删除“来源匹配当前 docs 目录、且无 owner/file_id”的旧版本
+（private 文档除外），然后增量写入新版本。默认 dry-run，确认后加 --apply。
 
 用法（容器内）：
     python /app/sync_shared_docs.py ./docs
@@ -44,9 +44,11 @@ def stale_public_doc_ids(chunks, current_ids: set[str], current_sources: set[str
         if not {c.source for c in group} & current_sources:
             continue
         metas = [c.metadata or {} for c in group]
-        if any(meta.get("visibility") != PUBLIC for meta in metas):
-            continue
+        # 早期 CLI 导入可能没有 visibility 元数据；owner/file_id 才是
+        # “用户上传”的可靠标志，private 文档必须保留。
         if any(meta.get("owner") or meta.get("file_id") for meta in metas):
+            continue
+        if any(meta.get("visibility") == "private" for meta in metas):
             continue
         stale.append(doc_id)
     return sorted(stale)
