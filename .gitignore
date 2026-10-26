@@ -28,6 +28,9 @@ uploads/
 *-简历-*.docx
 *简历*.docx
 
+# 个人面试准备笔记，不入库
+INTERVIEW.md
+
 # Node
 node_modules/
 dist/
